@@ -90,11 +90,11 @@ void LinkManager::reloadSettings()
     }
     if (!foundserial)
     {
-        LinkManagerFactory::addSerialConnection();
+//        LinkManagerFactory::addSerialConnection();
     }
     if (!foundudp)
     {
-        LinkManagerFactory::addUdpConnection(QHostAddress::Any,14550);
+//        LinkManagerFactory::addUdpConnection(QHostAddress::Any,14550);
     }
 }
 
