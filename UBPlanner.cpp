@@ -1,8 +1,6 @@
 #include "UBPlanner.h"
 
 #include <QLineF>
-#include <QPointF>
-#include <QVector>
 #include <QCoreApplication>
 
 #include "config.h"
