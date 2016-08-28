@@ -1,8 +1,12 @@
 #ifndef UBPLANNER_H
 #define UBPLANNER_H
 
-#include <QObject>
+#include <QPair>
+#include <QPointF>
+#include <QVector>
 #include <QPolygonF>
+
+#include <QObject>
 
 class UBPlanner : public QObject
 {
