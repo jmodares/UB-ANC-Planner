@@ -283,15 +283,19 @@ bool UBPlanner::planAgent(quint32 agent) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             qreal dist = sqrt(pow(m_nodes[m_agent_paths[agent][i].first].x() - m_nodes[m_agent_paths[agent][j].first].x(), 2) + pow(m_nodes[m_agent_paths[agent][i].first].y() - m_nodes[m_agent_paths[agent][j].first].y(), 2));
 
-            if (dist > max_dist || !dist) {
+            if (!dist || dist > max_dist) {
                 dist_node_node[i][j] = m_kappa;
             } else {
                 dist_node_node[i][j] = dist;
             }
+        }
+    }
 
+    for (int i = 0; i < m_agent_paths[agent].size(); i++) {
+        for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             for (int k = 0; k < m_agent_paths[agent].size(); k++) {
                 if (dist_node_node[i][j] == m_kappa || dist_node_node[j][k] == m_kappa) {
-                    direct_node_node_node[i][j][k] = m_kappa;
+                    direct_node_node_node[i][j][k] = 0;
                 } else {
                     qreal r = pow(m_nodes[m_agent_paths[agent][i].first].x() - m_nodes[m_agent_paths[agent][j].first].x(), 2) + pow(m_nodes[m_agent_paths[agent][i].first].y() - m_nodes[m_agent_paths[agent][j].first].y(), 2);
                     qreal s = pow(m_nodes[m_agent_paths[agent][j].first].x() - m_nodes[m_agent_paths[agent][k].first].x(), 2) + pow(m_nodes[m_agent_paths[agent][j].first].y() - m_nodes[m_agent_paths[agent][k].first].y(), 2);
