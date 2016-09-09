@@ -16,7 +16,7 @@ ILOSTLBEGIN
 UBPlanner::UBPlanner(QObject *parent) : QObject(parent),
     m_lambda(1),
     m_gamma(1),
-    m_kappa(10000),
+    m_kappa(1000000),
     m_dim(10),
     m_gap(0.01)
 {
@@ -36,8 +36,8 @@ void UBPlanner::startPlanner() {
              << "\n"
              << "\t --res \t\t resolution of the area decomposition\n"
              << "\t --gap \t\t gap to the optimal solution\n"
-             << "\t --dist \t\t distance factor\n"
-             << "\t --angle \t\t angle factor\n"
+             << "\t --dis \t\t distance factor\n"
+             << "\t --dir \t\t direction factor\n"
              << "\t --max \t\t maximum capacity for each drone\n"
              << "\n"
              << "\t --help \t\t show this message\n";
@@ -54,12 +54,12 @@ void UBPlanner::startPlanner() {
         m_gap = QCoreApplication::arguments().at(idx + 1).toDouble();
     }
 
-    idx = QCoreApplication::arguments().indexOf("--dist");
+    idx = QCoreApplication::arguments().indexOf("--dis");
     if (idx > 0) {
         m_lambda = QCoreApplication::arguments().at(idx + 1).toDouble();
     }
 
-    idx = QCoreApplication::arguments().indexOf("--angle");
+    idx = QCoreApplication::arguments().indexOf("--dir");
     if (idx > 0) {
         m_gamma = QCoreApplication::arguments().at(idx + 1).toDouble();
     }
@@ -325,6 +325,14 @@ bool UBPlanner::planAgent(quint32 agent) {
                 }
 
                 total_dist += dist_node_node[i][j] * x_node_node[i][j];
+            }
+        }
+
+        for (int i = 0; i < m_agent_paths[agent].size(); i++) {
+            for (int j = 0; j < m_agent_paths[agent].size(); j++) {
+                if (j == i || m_agent_paths[agent][j].first == m_depots[agent]) {
+                    continue;
+                }
 
                 for (int k = 0; k < m_agent_paths[agent].size(); k++) {
                     if (k == j) {
