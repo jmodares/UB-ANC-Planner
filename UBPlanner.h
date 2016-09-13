@@ -24,13 +24,15 @@ public slots:
     void startPlanner();
 
 protected:
-    qreal m_lambda;
-    qreal m_gamma;
-    qreal m_kappa;
+    quint32 m_lambda;
+    quint32 m_gamma;
+    quint64 m_kappa;
+    quint32 m_dim;
 
-    qreal m_dim;
+    quint32 m_pcs;
 
     qreal m_gap;
+    quint32 m_limit;
 
     QVector<quint32> m_depots;
     QVector<QPointF> m_nodes;

@@ -16,9 +16,11 @@ ILOSTLBEGIN
 UBPlanner::UBPlanner(QObject *parent) : QObject(parent),
     m_lambda(1),
     m_gamma(1),
-    m_kappa(1000000),
+    m_kappa(1000000000),
     m_dim(10),
-    m_gap(0.01)
+    m_gap(0.01),
+    m_pcs(100),
+    m_limit(1000000000)
 {
     m_areas.clear();
     m_nodes.clear();
@@ -36,6 +38,7 @@ void UBPlanner::startPlanner() {
              << "\n"
              << "\t --res \t\t resolution of the area decomposition\n"
              << "\t --gap \t\t gap to the optimal solution\n"
+             << "\t --lim \t\t optimizer time limit in seconds\n"
              << "\t --dis \t\t distance factor\n"
              << "\t --dir \t\t direction factor\n"
              << "\t --max \t\t maximum capacity for each drone\n"
@@ -52,6 +55,11 @@ void UBPlanner::startPlanner() {
     idx = QCoreApplication::arguments().indexOf("--gap");
     if (idx > 0) {
         m_gap = QCoreApplication::arguments().at(idx + 1).toDouble();
+    }
+
+    idx = QCoreApplication::arguments().indexOf("--lim");
+    if (idx > 0) {
+        m_limit = QCoreApplication::arguments().at(idx + 1).toDouble();
     }
 
     idx = QCoreApplication::arguments().indexOf("--dis");
@@ -262,16 +270,16 @@ bool UBPlanner::planAgent(quint32 agent) {
         }
     }
 
-    IloNumArray2 dist_node_node(env);
+    IloIntArray2 dist_node_node(env);
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
-        dist_node_node.add(IloNumArray(env, m_agent_paths[agent].size()));
+        dist_node_node.add(IloIntArray(env, m_agent_paths[agent].size()));
     }
 
-    IloNumArray3 direct_node_node_node(env);
+    IloIntArray3 direct_node_node_node(env);
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
-        IloNumArray2 direct_node_node(env);
+        IloIntArray2 direct_node_node(env);
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
-            direct_node_node.add(IloNumArray(env, m_agent_paths[agent].size()));
+            direct_node_node.add(IloIntArray(env, m_agent_paths[agent].size()));
         }
 
         direct_node_node_node.add(direct_node_node);
@@ -286,7 +294,7 @@ bool UBPlanner::planAgent(quint32 agent) {
             if (!dist || dist > max_dist) {
                 dist_node_node[i][j] = m_kappa;
             } else {
-                dist_node_node[i][j] = dist;
+                dist_node_node[i][j] = m_pcs * dist;
             }
         }
     }
@@ -301,7 +309,7 @@ bool UBPlanner::planAgent(quint32 agent) {
                     qreal s = pow(m_nodes[m_agent_paths[agent][j].first].x() - m_nodes[m_agent_paths[agent][k].first].x(), 2) + pow(m_nodes[m_agent_paths[agent][j].first].y() - m_nodes[m_agent_paths[agent][k].first].y(), 2);
                     qreal t = pow(m_nodes[m_agent_paths[agent][k].first].x() - m_nodes[m_agent_paths[agent][i].first].x(), 2) + pow(m_nodes[m_agent_paths[agent][k].first].y() - m_nodes[m_agent_paths[agent][i].first].y(), 2);
 
-                    direct_node_node_node[i][j][k] = M_PI - acos((r + s - t) / sqrt(4.0 * r * s));
+                    direct_node_node_node[i][j][k] = m_pcs * (M_PI - acos((r + s - t) / sqrt(4.0 * r * s)));
                 }
             }
         }
@@ -395,13 +403,14 @@ bool UBPlanner::planAgent(quint32 agent) {
 
         IloCplex cplex(mod);
         cplex.setParam(IloCplex::EpGap, m_gap);
-        if (!cplex.solve() || cplex.getObjValue() >= m_kappa) {
+        cplex.setParam(IloCplex::TiLim, m_limit);
+        if (!cplex.solve() || cplex.getObjValue() / m_pcs >= m_kappa) {
             throw(-1);
         }
 
         result = true;
 
-        env.out() << "Minimume Cost = " << cplex.getObjValue() << endl;
+        env.out() << "Minimume Cost = " << cplex.getObjValue() / m_pcs << endl;
 
         for (int i = 0; i < m_agent_paths[agent].size(); i++) {
             for (int j = 0; j < m_agent_paths[agent].size(); j++) {
