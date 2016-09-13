@@ -1,6 +1,7 @@
 #include "UBPlanner.h"
 
 #include <QLineF>
+#include <QElapsedTimer>
 #include <QCoreApplication>
 
 #include "config.h"
@@ -440,6 +441,7 @@ bool UBPlanner::planAgent(quint32 agent) {
 
 void UBPlanner::pathInfo(quint32 agent) {
     qreal dist = 0;
+    qreal direct = 0;
 
     quint32 ang1 = 0;
     quint32 ang2 = 0;
@@ -476,13 +478,15 @@ void UBPlanner::pathInfo(quint32 agent) {
         qreal s = pow(m_nodes[j].x() - m_nodes[k].x(), 2) + pow(m_nodes[j].y() - m_nodes[k].y(), 2);
         qreal t = pow(m_nodes[k].x() - m_nodes[i].x(), 2) + pow(m_nodes[k].y() - m_nodes[i].y(), 2);
 
-        qreal direct = M_PI - acos((r + s - t) / sqrt(4.0 * r * s));
+        qreal q = M_PI - acos((r + s - t) / sqrt(4.0 * r * s));
 
-        if (direct > M_PI / 4.0 - M_PI / 8.0 && direct < M_PI / 4.0 + M_PI / 8.0) {
+        direct += q;
+
+        if (q > M_PI / 4.0 - M_PI / 8.0 && q < M_PI / 4.0 + M_PI / 8.0) {
             ang1++;
-        } else if (direct > M_PI / 2.0 - M_PI / 8.0 && direct < M_PI / 2.0 + M_PI / 8.0) {
+        } else if (q > M_PI / 2.0 - M_PI / 8.0 && q < M_PI / 2.0 + M_PI / 8.0) {
             ang2++;
-        } else if (direct > 3.0 * M_PI / 4.0 - M_PI / 8.0 && direct < 3.0 * M_PI / 4.0 + M_PI / 8.0) {
+        } else if (q > 3.0 * M_PI / 4.0 - M_PI / 8.0 && q < 3.0 * M_PI / 4.0 + M_PI / 8.0) {
             ang3++;
         }
 
@@ -491,6 +495,7 @@ void UBPlanner::pathInfo(quint32 agent) {
     }
 
     cout << "Total Distance: " << dist << " | Number of 45' Turn: " << ang1 << " | Number of 90' Turn: " << ang2 << " | Number of 135' Turn: " << ang3 << endl;
+    cout << "Total Cost: " << m_lambda * dist + m_gamma * direct << endl;
 }
 
 void UBPlanner::missionAgent(quint32 agent) {
@@ -551,6 +556,9 @@ void UBPlanner::missionAgent(quint32 agent) {
 }
 
 void UBPlanner::plan() {
+    QElapsedTimer total_time;
+    total_time.start();
+
     decompose();
 
     if (!divide()) {
@@ -558,11 +566,15 @@ void UBPlanner::plan() {
         exit(EXIT_FAILURE);
     }
 
+    QElapsedTimer agent_time;
     for (int a = 0; a < m_agents.size(); a++) {
+        agent_time.restart();
         if (!planAgent(a)) {
             cerr << "Unable to plan the coverage path for agent " << a << " !" <<endl;
             exit(EXIT_FAILURE);
         }
+
+        cout << "Elapsed time for agent " << a << " is "<< agent_time.elapsed() / 1000.0 << endl;
 
         pathInfo(a);
         missionAgent(a);
@@ -570,6 +582,6 @@ void UBPlanner::plan() {
 
     emit planReady();
 
-    cout << "The planner has successfully planned the mission for each agent!" << endl;
+    cout << "The planner has successfully planned the mission for each agent in total time " << total_time.elapsed() / 1000.0 << endl;
     exit(EXIT_SUCCESS);
 }
