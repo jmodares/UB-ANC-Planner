@@ -164,13 +164,12 @@ bool UBPlanner::evaluate(const QVector<QPointF>& cell) {
         if (!m_areas[0].containsPoint(cell[i], Qt::OddEvenFill))
             return false;
 
-        QLineF line_cell(cell[i], cell[i + 1]);
+        QLineF line(cell[i], cell[i + 1]);
 
         foreach (QPolygonF area, m_areas)
             for (int i = 0; i < area.size() - 1; i++)
-                if (line_cell.intersect(QLineF(area[i], area[i + 1]), NULL) == QLineF::BoundedIntersection)
+                if (line.intersect(QLineF(area[i], area[i + 1]), NULL) == QLineF::BoundedIntersection)
                     return false;
-
     }
 
     return true;
