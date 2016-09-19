@@ -149,7 +149,7 @@ void UBPlanner::decompose() {
         }
 
         QVector<QPointF> cell;
-        cell << vtx << vtx + QPointF(m_dim, 0) << vtx + QPointF(m_dim, m_dim) << vtx + QPointF(0, m_dim);
+        cell << vtx << vtx + QPointF(m_dim, 0) << vtx + QPointF(m_dim, m_dim) << vtx + QPointF(0, m_dim) << vtx;
 
         if (evaluate(cell)) {
             m_nodes << vtx + QPointF(m_dim / 2.0, m_dim / 2.0);
@@ -160,16 +160,17 @@ void UBPlanner::decompose() {
 }
 
 bool UBPlanner::evaluate(const QVector<QPointF>& cell) {
-    foreach (QPointF vtx, cell) {
-        if (!m_areas[0].containsPoint(vtx, Qt::OddEvenFill)) {
+    for (int i = 0; i < cell.size() - 1; i++) {
+        if (!m_areas[0].containsPoint(cell[i], Qt::OddEvenFill))
             return false;
-        }
 
-        for (int i = 1; i < m_areas.size(); i++) {
-            if (m_areas[i].containsPoint(vtx, Qt::OddEvenFill)) {
-                return false;
-            }
-        }
+        QLineF line_cell(cell[i], cell[i + 1]);
+
+        foreach (QPolygonF area, m_areas)
+            for (int i = 0; i < area.size() - 1; i++)
+                if (line_cell.intersect(QLineF(area[i], area[i + 1]), NULL) == QLineF::BoundedIntersection)
+                    return false;
+
     }
 
     return true;
