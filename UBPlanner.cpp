@@ -164,6 +164,10 @@ bool UBPlanner::evaluate(const QVector<QPointF>& cell) {
         if (!m_areas[0].containsPoint(cell[i], Qt::OddEvenFill))
             return false;
 
+        for (int i = 1; i < m_areas.size(); i++)
+            if (m_areas[i].containsPoint(cell[i], Qt::OddEvenFill))
+                return false;
+
         QLineF line(cell[i], cell[i + 1]);
 
         foreach (QPolygonF area, m_areas)
