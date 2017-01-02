@@ -9,7 +9,10 @@
 #define SNR_PORT 25760
 #define PWR_PORT 35760
 
+#define PXY_PORT 45760
+
 #define AGENT_FILE "./agent"
+#define MISSION_FILE "/mission.txt"
 #define FIRMWARE_FILE "./firmware"
 
 #define OBJECTS_PATH "./objects"
@@ -19,7 +22,7 @@
 #define SERVER_TRACK_RATE 1000
 
 #define PACKET_END "\r\r\n\n"
-#define BROADCAST_ADDRESS 0
+#define BROADCAST_ID 255
 
 //#define PHY_PORT 52001
 #define PHY_TRACK_RATE 1000
