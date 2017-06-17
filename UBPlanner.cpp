@@ -132,8 +132,8 @@ void UBPlanner::decompose() {
     qreal xmax = m_areas[0].boundingRect().bottomRight().x();
     qreal ymax = m_areas[0].boundingRect().bottomRight().y();
 
-    int x = 0;
-    int y = 0;
+    qreal x = 0;
+    qreal y = 0;
     while (true) {
         QPointF vtx(xmin + x * m_dim / m_res, ymin + y * m_dim / m_res);
 
