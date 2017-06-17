@@ -86,7 +86,8 @@ void UBPlanner::startPlanner() {
 
     QList<Waypoint*> wps = wpm.getWaypointEditableList();
     QList<Waypoint*>::const_iterator i = wps.begin();
-    while (i < wps.end()) {
+    m_res = proj.GetGroundResolution(GND_RES, (*i)->getLatitude());
+    while (i != wps.end()) {
         if ((*i)->getAction() == MAV_CMD_NAV_TAKEOFF) {
             pix = proj.FromLatLngToPixel((*i)->getLatitude(), (*i)->getLongitude(), GND_RES);
 
@@ -94,7 +95,7 @@ void UBPlanner::startPlanner() {
             area << QPointF(pix.X(), pix.Y());
 
             QList<Waypoint*>::const_iterator j = i;
-            while (j < wps.end()) {
+            while (j != wps.end()) {
                 j++;
 
                 pix = proj.FromLatLngToPixel((*j)->getLatitude(), (*j)->getLongitude(), GND_RES);
@@ -134,14 +135,14 @@ void UBPlanner::decompose() {
     int x = 0;
     int y = 0;
     while (true) {
-        QPointF vtx(xmin + x * m_dim, ymin + y * m_dim);
+        QPointF vtx(xmin + x * m_dim / m_res, ymin + y * m_dim / m_res);
 
         if (vtx.x() > xmax) {
             x = 0;
             y++;
 
-            vtx.setX(xmin + x * m_dim);
-            vtx.setY(ymin + y * m_dim);
+            vtx.setX(xmin + x * m_dim / m_res);
+            vtx.setY(ymin + y * m_dim / m_res);
 
             if (vtx.y() > ymax) {
                 break;
@@ -149,10 +150,10 @@ void UBPlanner::decompose() {
         }
 
         QVector<QPointF> cell;
-        cell << vtx << vtx + QPointF(m_dim, 0) << vtx + QPointF(m_dim, m_dim) << vtx + QPointF(0, m_dim) << vtx;
+        cell << vtx << vtx + QPointF(m_dim / m_res, 0) << vtx + QPointF(m_dim / m_res, m_dim / m_res) << vtx + QPointF(0, m_dim / m_res) << vtx;
 
         if (evaluate(cell)) {
-            m_nodes << vtx + QPointF(m_dim / 2.0, m_dim / 2.0);
+            m_nodes << vtx + QPointF(m_dim / (2.0 * m_res), m_dim / (2.0 * m_res));
         }
 
         x++;
