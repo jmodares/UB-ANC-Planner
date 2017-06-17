@@ -28,6 +28,7 @@ protected:
     quint32 m_gamma;
     quint64 m_kappa;
     quint32 m_dim;
+    qreal m_res;
 
     quint32 m_pcs;
 
