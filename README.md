@@ -3,7 +3,7 @@ Copyright © 2016 - 2017 Jalil Modares
 This program is part of my Ph.D. Dissertation research in the Department of Electrical Engineering at the University at Buffalo. I work in UB's Multimedia Communications and Systems Laboratory with my Ph.D. adviser, Prof. Nicholas Mastronarde <http://www.eng.buffalo.edu/~nmastron/>.
 
 If you use this program for your work/research, please cite:
-J. Modares, F. Ghanei, N. Mastronarde and K. Dantu, "UB-ANC Planner: Energy Efficient Coverage Path Planning with Multiple Drones" <http://arxiv.org/abs/1509.08346>.
+J. Modares, F. Ghanei, N. Mastronarde and K. Dantu, "UB-ANC Planner: Energy Efficient Coverage Path Planning with Multiple Drones" <https://doi.org/10.1109/ICRA.2017.7989732>.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
 
