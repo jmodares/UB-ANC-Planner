@@ -444,7 +444,7 @@ bool UBPlanner::planAgent(quint32 agent) {
     return result;
 }
 
-void UBPlanner::pathInfo(quint32 agent) {
+bool UBPlanner::pathInfo(quint32 agent) {
     qreal dist = 0;
     qreal direct = 0;
 
@@ -464,8 +464,15 @@ void UBPlanner::pathInfo(quint32 agent) {
         }
     }
 
+    qreal max_d = (1.0 + sqrt(2.0) / 2.0) * m_dim;
+
     while (true) {
-        dist += sqrt(pow(m_nodes[i].x() - m_nodes[j].x(), 2) + pow(m_nodes[i].y() - m_nodes[j].y(), 2));
+        qreal d = sqrt(pow(m_nodes[i].x() - m_nodes[j].x(), 2) + pow(m_nodes[i].y() - m_nodes[j].y(), 2));
+        if (d > max_d) {
+            return false;
+        }
+
+        dist += d;
 
         if (j == m_depots[agent]) {
             break;
@@ -501,6 +508,8 @@ void UBPlanner::pathInfo(quint32 agent) {
 
     cout << "Total Distance: " << dist << " | Number of 45' Turn: " << ang1 << " | Number of 90' Turn: " << ang2 << " | Number of 135' Turn: " << ang3 << endl;
     cout << "Total Cost: " << m_lambda * dist + m_gamma * direct << endl;
+
+    return true;
 }
 
 void UBPlanner::missionAgent(quint32 agent) {
@@ -574,14 +583,13 @@ void UBPlanner::plan() {
     QElapsedTimer agent_time;
     for (int a = 0; a < m_agents.size(); a++) {
         agent_time.restart();
-        if (!planAgent(a)) {
+        if (!planAgent(a) || !pathInfo(a)) {
             cerr << "Unable to plan the coverage path for agent " << a << " !" <<endl;
             exit(EXIT_FAILURE);
         }
 
         cout << "Elapsed time for agent " << a << " is "<< agent_time.elapsed() / 1000.0 << endl;
 
-        pathInfo(a);
         missionAgent(a);
     }
 
