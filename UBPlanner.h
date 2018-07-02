@@ -45,7 +45,7 @@ protected:
 protected:
     bool divide();
     void decompose();
-    void pathInfo(quint32 agent);
+    bool pathInfo(quint32 agent);
     bool planAgent(quint32 agent);
     void missionAgent(quint32 agent);
     bool evaluate(const QVector<QPointF>& cell);
