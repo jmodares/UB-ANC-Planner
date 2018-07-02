@@ -54,6 +54,7 @@ inline bool isinf(T value)
 }
 #else
 #include <cmath>
+using namespace std;
 #if defined(Q_OS_MACX) || defined(Q_OS_WIN)
 #ifndef isnan
 #define isnan(x) std::isnan(x)
