@@ -7,6 +7,7 @@
 QT       += core
 
 QT       += gui
+QT       += positioning
 
 TARGET   = ub-anc-planner
 CONFIG   += console
@@ -15,20 +16,20 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 #
-# APM Planner Library
-#
-include(apm_planner.pri)
-
-#
 # CPLEX Optimization Library
 #
 include(cplex.pri)
 
-INCLUDEPATH += \
-
 HEADERS += \
+    UBConfig.h \
     UBPlanner.h \
-    config.h \
+    Waypoint.h \
 
 SOURCES += \
     UBPlanner.cpp \
+    Waypoint.cc \
+    main.cpp \
+
+INCLUDEPATH += \
+    mavlink/include/mavlink/v2.0 \
+    mavlink/include/mavlink/v2.0/ardupilotmega \

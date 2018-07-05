@@ -2,11 +2,13 @@
 #define UBPLANNER_H
 
 #include <QPair>
-#include <QPointF>
 #include <QVector>
 #include <QPolygonF>
+#include <QGeoCoordinate>
 
 #include <QObject>
+
+class Waypoint;
 
 class UBPlanner : public QObject
 {
@@ -24,21 +26,21 @@ public slots:
     void startPlanner();
 
 protected:
+    QString m_file;
+    quint32 m_dim;
+    quint32 m_limit;
+    qreal m_gap;
     quint32 m_lambda;
     quint32 m_gamma;
-    quint64 m_kappa;
-    quint32 m_dim;
-    qreal m_res;
+    quint32 m_kappa;
 
     quint32 m_pcs;
 
-    qreal m_gap;
-    quint32 m_limit;
-
     QVector<quint32> m_depots;
-    QVector<QPointF> m_nodes;
-    QVector<QPointF> m_agents;
     QVector<QPolygonF> m_areas;
+
+    QVector<QGeoCoordinate> m_nodes;
+    QVector<QGeoCoordinate> m_agents;
 
     QVector<QVector<QPair<quint32, quint32> > > m_agent_paths;
 
@@ -49,6 +51,18 @@ protected:
     bool planAgent(quint32 agent);
     void missionAgent(quint32 agent);
     bool evaluate(const QVector<QPointF>& cell);
+
+    QList<Waypoint*> loadWaypoints(const QString &loadFile);
+    void storeWaypoints(const QString& storeFile, QList<Waypoint*>& wps);
+
+public:
+    void setFile(const QString& file) {m_file = file;}
+    void setDimension(quint32 dim) {m_dim = dim;}
+    void setLimit(quint32 limit) {m_limit = limit;}
+    void setGap(qreal gap) {m_gap = gap;}
+    void setLambda(quint32 lambda) {m_lambda = lambda;}
+    void setGamma(quint32 gamma) {m_gamma = gamma;}
+    void setkappa(quint32 kappa) {m_kappa = kappa;}
 };
 
 #endif // UBPLANNER_H
