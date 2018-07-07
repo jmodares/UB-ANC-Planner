@@ -48,12 +48,13 @@ protected:
     bool divide();
     void decompose();
     bool pathInfo(quint32 agent);
-    bool planAgent(quint32 agent);
     void missionAgent(quint32 agent);
     bool evaluate(const QVector<QPointF>& cell);
 
     QList<Waypoint*> loadWaypoints(const QString &loadFile);
     void storeWaypoints(const QString& storeFile, QList<Waypoint*>& wps);
+
+    virtual bool planAgent(quint32 agent);
 
 public:
     void setFile(const QString& file) {m_file = file;}
