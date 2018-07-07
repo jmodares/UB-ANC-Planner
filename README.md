@@ -2,8 +2,7 @@ Copyright © 2016 - 2018 Jalil Modares
 
 This program was part of my Ph.D. Dissertation research in the Department of Electrical Engineering at the University at Buffalo. I worked in UB's Multimedia Communications and Systems Laboratory with my Ph.D. adviser, [Prof. Nicholas Mastronarde](http://www.eng.buffalo.edu/~nmastron).
 
-If you use this program for your work/research, please cite:
-[J. Modares, F. Ghanei, N. Mastronarde and K. Dantu, "UB-ANC Planner: Energy Efficient Coverage Path Planning with Multiple Drones"] (https://doi.org/10.1109/ICRA.2017.7989732).
+If you use this program for your work/research, please cite: [J. Modares, F. Ghanei, N. Mastronarde and K. Dantu, "UB-ANC Planner: Energy Efficient Coverage Path Planning with Multiple Drones"](https://doi.org/10.1109/ICRA.2017.7989732).
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
 
@@ -17,7 +16,7 @@ Utilizing the UB-ANC Drone and [UB-ANC Emulator](https://github.com/jmodares/UB-
 
 ## Build
 
-The current version of the UB-ANC Planner uses [IBM ILOG CPLEX Optimization Studio 12.63](https://www.ibm.com/products/ilog-cplex-optimization-studio) and [Qt](https://www.qt.io/) as its main libraries. The build process explained here is targeted for Linux (Debian compatible) platforms. We recommend using [Ubuntu 16.04](http://releases.ubuntu.com/16.04/). Before building the UB-ANC Planner, 'cplex.pri' file should be changed to point to the correct location of CPLEX library. Next run the following commands to setup your system:
+The current version of the UB-ANC Planner uses [IBM ILOG CPLEX Optimization Studio 12.63](https://www.ibm.com/products/ilog-cplex-optimization-studio) and [Qt](https://www.qt.io/) as its main libraries. The build process explained here is targeted for Linux (Debian compatible) platforms. We recommend using [Ubuntu 16.04](http://releases.ubuntu.com/16.04/). Before building the UB-ANC Planner, `cplex.pri` file should be changed to point to the correct location of CPLEX library. Next run the following commands to setup your system:
 ```
 sudo apt-get update && sudo apt-get upgrade
 sudo apt-get install qt5-default qtbase5-dev \
@@ -36,5 +35,5 @@ qmake ../UB-ANC-Planner
 make -j4
 ```
 
-## Running in the UB-ANC Planner
-There are different command line options that need to be set, the important one if '-f' or '--file' which specify the mission file for the planner. Use '-h' or '--help' to see all options and their descriptions.
+## Run
+There are different command line options that need to be set, the important one is `-f` or `--file` which specify the mission file for the planner. Use `-h` or `--help` to see all options and their descriptions.
