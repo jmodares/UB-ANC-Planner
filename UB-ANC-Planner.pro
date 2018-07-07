@@ -21,14 +21,14 @@ TEMPLATE = app
 include(cplex.pri)
 
 HEADERS += \
+    Waypoint.h \
     UBConfig.h \
     UBPlanner.h \
-    Waypoint.h \
 
 SOURCES += \
-    UBPlanner.cpp \
-    Waypoint.cc \
     main.cpp \
+    Waypoint.cc \
+    UBPlanner.cpp \
 
 INCLUDEPATH += \
     mavlink/include/mavlink/v2.0 \
