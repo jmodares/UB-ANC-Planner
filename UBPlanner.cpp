@@ -333,7 +333,7 @@ bool UBPlanner::planAgent(quint32 agent) {
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             for (int k = 0; k < m_agent_paths[agent].size(); k++) {
-                if (dist_node_node[i][j] == m_kappa || dist_node_node[j][k] == m_kappa) {
+                if (dist_node_node[i][j] > max_dist || dist_node_node[j][k] > max_dist) {
                     turn_node_node_node[i][j][k] = m_kappa;
                 } else {
                     qreal r = m_nodes[m_agent_paths[agent][i].first].distanceTo(m_nodes[m_agent_paths[agent][j].first]);
