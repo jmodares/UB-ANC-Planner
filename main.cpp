@@ -10,30 +10,30 @@ int main(int argc, char *argv[]) {
     QCoreApplication::setApplicationVersion("1.0");
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("UB-ANC Planner LKH");
+    parser.setApplicationDescription("UB-ANC Planner CPLEX");
     parser.addHelpOption();
     parser.addVersionOption();
 
     parser.addOptions({
-        {{"A", "area"}, "Set mission file containing area information", "area"},
-        {{"D", "dimension"}, "Set dimension of the decomposition in meters", "dimension", "10"},
-        {{"L", "limit"}, "Set optimizer time limit in seconds", "limit", "1000000000"},
-        {{"P", "gap"}, "Set gap to the optimal solution", "gap", "0.01"},
-        {{"M", "lambda"}, "Set distance factor in cost function", "lambda", "1"},
-        {{"G", "gamma"}, "Set direction factor in cost function", "gamma", "1"},
-        {{"K", "kappa"}, "Set maximum capacity for each drone", "kappa", "1000000000"},
+        {{"f", "file"}, "Set mission file containing area information", "file"},
+        {{"r", "resolution"}, "Set resolution of the decomposition in meters", "resolution", "10"},
+        {{"l", "limit"}, "Set optimizer time limit in seconds", "limit", "1000000000"},
+        {{"g", "gap"}, "Set gap to the optimal solution", "gap", "0.01"},
+        {{"a", "lambda"}, "Set distance factor in cost function", "lambda", "1"},
+        {{"m", "gamma"}, "Set turn factor in cost function", "gamma", "1"},
+        {{"k", "kappa"}, "Set maximum capacity for each drone", "kappa", "1000000000"},
     });
 
     parser.process(a);
 
-    if (!parser.isSet("area")) {
+    if (!parser.isSet("file")) {
         qWarning() << QObject::tr("The area should be set!");
         return 0;
     }
 
     UBPlanner* planner = new UBPlanner();
-    planner->setFile(parser.value("area"));
-    planner->setDimension(parser.value("dimension").toUInt());
+    planner->setFile(parser.value("file"));
+    planner->setResolution(parser.value("resolution").toUInt());
     planner->setLimit(parser.value("limit").toUInt());
     planner->setGap(parser.value("gap").toDouble());
     planner->setLambda(parser.value("lambda").toUInt());

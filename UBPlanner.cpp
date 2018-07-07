@@ -17,7 +17,7 @@ ILOSTLBEGIN
 
 UBPlanner::UBPlanner(QObject *parent) : QObject(parent),
     m_file(""),
-    m_dim(10),
+    m_res(10),
     m_limit(1000000000),
     m_gap(0.01),
     m_lambda(1),
@@ -143,18 +143,18 @@ void UBPlanner::decompose() {
     qreal xazimuth = s.azimuthTo(r);
     qreal yazimuth = s.azimuthTo(u);
 
-    qreal xstep = ceil(s.distanceTo(r) / m_dim);
-    qreal ystep = ceil(s.distanceTo(u) / m_dim);
-    for (int i = 0; i < ystep; i++) {
-        for (int j = 0; j < xstep; j++) {
-            QGeoCoordinate x0 = s.atDistanceAndAzimuth(j * m_dim, xazimuth);
-            QGeoCoordinate y0 = s.atDistanceAndAzimuth(i * m_dim, yazimuth);
-            QGeoCoordinate x1 = s.atDistanceAndAzimuth(j * m_dim, xazimuth);
-            QGeoCoordinate y1 = s.atDistanceAndAzimuth((i + 1) * m_dim, yazimuth);
-            QGeoCoordinate x2 = s.atDistanceAndAzimuth((j + 1) * m_dim, xazimuth);
-            QGeoCoordinate y2 = s.atDistanceAndAzimuth((i + 1) * m_dim, yazimuth);
-            QGeoCoordinate x3 = s.atDistanceAndAzimuth((j + 1) * m_dim, xazimuth);
-            QGeoCoordinate y3 = s.atDistanceAndAzimuth(i * m_dim, yazimuth);
+    qreal xstep = ceil(s.distanceTo(r) / m_res);
+    qreal ystep = ceil(s.distanceTo(u) / m_res);
+    for (int j = 0; j < ystep; j++) {
+        for (int i = 0; i < xstep; i++) {
+            QGeoCoordinate x0 = s.atDistanceAndAzimuth(i * m_res, xazimuth);
+            QGeoCoordinate y0 = s.atDistanceAndAzimuth(j * m_res, yazimuth);
+            QGeoCoordinate x1 = s.atDistanceAndAzimuth(i * m_res, xazimuth);
+            QGeoCoordinate y1 = s.atDistanceAndAzimuth((j + 1) * m_res, yazimuth);
+            QGeoCoordinate x2 = s.atDistanceAndAzimuth((i + 1) * m_res, xazimuth);
+            QGeoCoordinate y2 = s.atDistanceAndAzimuth((j + 1) * m_res, yazimuth);
+            QGeoCoordinate x3 = s.atDistanceAndAzimuth((i + 1) * m_res, xazimuth);
+            QGeoCoordinate y3 = s.atDistanceAndAzimuth(j * m_res, yazimuth);
 
             QPointF xf0(x0.latitude(), x0.longitude());
             QPointF yf0(y0.latitude(), y0.longitude());
@@ -169,8 +169,8 @@ void UBPlanner::decompose() {
             cell << xf0 + yf0 - sf << xf1 + yf1 - sf << xf2 + yf2 - sf << xf3 + yf3 - sf << xf0 + yf0 - sf;
 
             if (evaluate(cell)) {
-                QGeoCoordinate xm = s.atDistanceAndAzimuth((j + 0.5) * m_dim, xazimuth);
-                QGeoCoordinate ym = s.atDistanceAndAzimuth((i + 0.5) * m_dim, yazimuth);
+                QGeoCoordinate xm = s.atDistanceAndAzimuth((i + 0.5) * m_res, xazimuth);
+                QGeoCoordinate ym = s.atDistanceAndAzimuth((j + 0.5) * m_res, yazimuth);
 
                 m_nodes << QGeoCoordinate(xm.latitude() + ym.latitude() - s.latitude(), xm.longitude() + ym.longitude() - s.longitude());
             }
@@ -289,11 +289,10 @@ bool UBPlanner::planAgent(quint32 agent) {
 
     m_depots[agent] = m_agent_paths[agent][0].first;
 
-    qreal dist = 0;
     qreal min_dist = m_agents[agent].distanceTo(m_nodes[m_depots[agent]]);
     QPair<quint32, quint32> node;
     foreach (node, m_agent_paths[agent]) {
-        dist = m_agents[agent].distanceTo(m_nodes[node.first]);
+        qreal dist = m_agents[agent].distanceTo(m_nodes[node.first]);
 
         if (dist < min_dist) {
             min_dist = dist;
@@ -306,17 +305,18 @@ bool UBPlanner::planAgent(quint32 agent) {
         dist_node_node.add(IloIntArray(env, m_agent_paths[agent].size()));
     }
 
-    IloIntArray3 direct_node_node_node(env);
+    IloIntArray3 turn_node_node_node(env);
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
-        IloIntArray2 direct_node_node(env);
+        IloIntArray2 turn_node_node(env);
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
-            direct_node_node.add(IloIntArray(env, m_agent_paths[agent].size()));
+            turn_node_node.add(IloIntArray(env, m_agent_paths[agent].size()));
         }
 
-        direct_node_node_node.add(direct_node_node);
+        turn_node_node_node.add(turn_node_node);
     }
 
-    qreal max_dist = (1.0 + sqrt(2.0) / 2.0) * m_dim;
+    // sqrt(2) < 1.5 < 2
+    qreal max_dist = 1.5 * m_res;
 
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
@@ -334,13 +334,21 @@ bool UBPlanner::planAgent(quint32 agent) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             for (int k = 0; k < m_agent_paths[agent].size(); k++) {
                 if (dist_node_node[i][j] == m_kappa || dist_node_node[j][k] == m_kappa) {
-                    direct_node_node_node[i][j][k] = 0;
+                    turn_node_node_node[i][j][k] = m_kappa;
                 } else {
                     qreal r = m_nodes[m_agent_paths[agent][i].first].distanceTo(m_nodes[m_agent_paths[agent][j].first]);
-                    qreal s = m_nodes[m_agent_paths[agent][j].first].distanceTo(m_nodes[m_agent_paths[agent][k].first]);
-                    qreal t = m_nodes[m_agent_paths[agent][k].first].distanceTo(m_nodes[m_agent_paths[agent][i].first]);
+                    qreal e = m_nodes[m_agent_paths[agent][j].first].distanceTo(m_nodes[m_agent_paths[agent][k].first]);
+                    qreal s = m_nodes[m_agent_paths[agent][k].first].distanceTo(m_nodes[m_agent_paths[agent][i].first]);
+                    qreal t = (r * r + e * e - s * s) / (2.0 * r * e);
+                    if (t > 1.0) {
+                        t = 1.0;
+                    } else if (t < -1.0) {
+                        t = -1.0;
+                    }
 
-                    direct_node_node_node[i][j][k] = m_pcs * (M_PI - acos((r + s - t) / sqrt(4.0 * r * s)));
+                    qreal turn = M_PI - acos(t);
+
+                    turn_node_node_node[i][j][k] = m_pcs * turn;
                 }
             }
         }
@@ -355,7 +363,7 @@ bool UBPlanner::planAgent(quint32 agent) {
             x_node_node.add(IloBoolVarArray(env, m_agent_paths[agent].size()));
         }
 
-        IloExpr total_dist(env), total_direct(env);
+        IloExpr total_dist(env), total_turn(env);
 
         for (int i = 0; i < m_agent_paths[agent].size(); i++) {
             for (int j = 0; j < m_agent_paths[agent].size(); j++) {
@@ -378,15 +386,15 @@ bool UBPlanner::planAgent(quint32 agent) {
                         continue;
                     }
 
-                    total_direct += direct_node_node_node[i][j][k] * x_node_node[i][j] * x_node_node[j][k];
+                    total_turn += turn_node_node_node[i][j][k] * x_node_node[i][j] * x_node_node[j][k];
                 }
             }
         }
 
-        mod.add(IloMinimize(env, m_lambda * total_dist + m_gamma * total_direct));
+        mod.add(IloMinimize(env, m_lambda * total_dist + m_gamma * total_turn));
 
         total_dist.end();
-        total_direct.end();
+        total_turn.end();
 
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             IloExpr flow_in(env);
@@ -470,8 +478,8 @@ bool UBPlanner::planAgent(quint32 agent) {
 }
 
 bool UBPlanner::pathInfo(quint32 agent) {
-    qreal dist = 0;
-    qreal direct = 0;
+    qreal total_dist = 0;
+    qreal total_turn = 0;
 
     quint32 ang1 = 0;
     quint32 ang2 = 0;
@@ -489,15 +497,16 @@ bool UBPlanner::pathInfo(quint32 agent) {
         }
     }
 
-    qreal max_d = (1.0 + sqrt(2.0) / 2.0) * m_dim;
+    // sqrt(2) < 1.5 < 2
+    qreal max_dist = 1.5 * m_res;
 
     while (true) {
-        qreal d = m_nodes[i].distanceTo(m_nodes[j]);
-        if (d > max_d) {
+        qreal dist = m_nodes[i].distanceTo(m_nodes[j]);
+        if (dist > max_dist) {
             return false;
         }
 
-        dist += d;
+        total_dist += dist;
 
         if (j == m_depots[agent]) {
             break;
@@ -512,18 +521,24 @@ bool UBPlanner::pathInfo(quint32 agent) {
         }
 
         qreal r = m_nodes[i].distanceTo(m_nodes[j]);
-        qreal s = m_nodes[j].distanceTo(m_nodes[k]);
-        qreal t = m_nodes[k].distanceTo(m_nodes[i]);
+        qreal e = m_nodes[j].distanceTo(m_nodes[k]);
+        qreal s = m_nodes[k].distanceTo(m_nodes[i]);
+        qreal t = (r * r + e * e - s * s) / (2.0 * r * e);
+        if (t > 1.0) {
+            t = 1.0;
+        } else if (t < -1.0) {
+            t = -1.0;
+        }
 
-        qreal q = M_PI - acos((r + s - t) / sqrt(4.0 * r * s));
+        qreal turn = M_PI - acos(t);
 
-        direct += q;
+        total_turn += turn;
 
-        if (q > M_PI / 4.0 - M_PI / 8.0 && q < M_PI / 4.0 + M_PI / 8.0) {
+        if (turn > M_PI / 4.0 - M_PI / 8.0 && turn < M_PI / 4.0 + M_PI / 8.0) {
             ang1++;
-        } else if (q > M_PI / 2.0 - M_PI / 8.0 && q < M_PI / 2.0 + M_PI / 8.0) {
+        } else if (turn > M_PI / 2.0 - M_PI / 8.0 && turn < M_PI / 2.0 + M_PI / 8.0) {
             ang2++;
-        } else if (q > 3.0 * M_PI / 4.0 - M_PI / 8.0 && q < 3.0 * M_PI / 4.0 + M_PI / 8.0) {
+        } else if (turn > 3.0 * M_PI / 4.0 - M_PI / 8.0 && turn < 3.0 * M_PI / 4.0 + M_PI / 8.0) {
             ang3++;
         }
 
@@ -531,8 +546,8 @@ bool UBPlanner::pathInfo(quint32 agent) {
         j = k;
     }
 
-    cout << "Total Distance: " << dist << " | Number of 45' Turn: " << ang1 << " | Number of 90' Turn: " << ang2 << " | Number of 135' Turn: " << ang3 << endl;
-    cout << "Total Cost: " << m_lambda * dist + m_gamma * direct << endl;
+    cout << "Total Distance: " << total_dist << " | Number of 45' Turn: " << ang1 << " | Number of 90' Turn: " << ang2 << " | Number of 135' Turn: " << ang3 << endl;
+    cout << "Total Cost: " << m_lambda * total_dist + m_gamma * total_turn << endl;
 
     return true;
 }

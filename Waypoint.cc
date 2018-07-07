@@ -29,13 +29,10 @@ This file is part of the QGROUNDCONTROL project
  *
  */
 
-//#include "QsLog.h"
+//#include "logging.h"
 #include "Waypoint.h"
 #include <QStringList>
 #include <QDebug>
-
-#include <cmath>
-using namespace std;
 
 Waypoint::Waypoint(quint16 _id, double _x, double _y, double _z, double _param1, double _param2, double _param3, double _param4,
                    bool _autocontinue, bool _current, MAV_FRAME _frame, MAV_CMD _action, const QString& _description)
@@ -58,7 +55,8 @@ Waypoint::Waypoint(quint16 _id, double _x, double _y, double _z, double _param1,
 }
 
 Waypoint::Waypoint(const Waypoint& waypoint)
-    : id(waypoint.getId()),
+    : QObject(),
+      id(waypoint.getId()),
       x(waypoint.getX()),
       y(waypoint.getY()),
       z(waypoint.getZ()),
@@ -83,7 +81,77 @@ Waypoint::~Waypoint()
 
 bool Waypoint::isNavigationType()
 {
-    return (action < MAV_CMD_NAV_LAST);
+
+        if (action < MAV_CMD_NAV_LAST){
+
+            if (action == MAV_CMD_NAV_TAKEOFF) {
+                // TakeOff Command can be bot NAV or NonNAV
+                return isValidLocation();
+            }
+
+            if (action != MAV_CMD_NAV_ROI) // Odd NAV command out
+                return true;
+        }
+        return false;
+}
+
+bool Waypoint::isGlobalFrame() const
+{
+    switch (frame) {
+    case MAV_FRAME_GLOBAL:
+    case MAV_FRAME_GLOBAL_INT:
+    case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+    case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+    case MAV_FRAME_GLOBAL_TERRAIN_ALT:
+    case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Waypoint::isRelativeAlt() const
+{
+    switch (frame) {
+    case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+    case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+    case MAV_FRAME_GLOBAL_TERRAIN_ALT:
+    case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool Waypoint::isValidLocation() const
+{
+    if (isGlobalFrame()){
+        if ( getLatitude() < -90.0 || getLatitude() > 90.0
+             || getLongitude() < -180.0 || getLongitude() > 180.0) {
+            return false;
+        }
+
+        if ( getLatitude() == 0.0 || getLongitude() == 0.0) {
+            return false; // zero Long/Lat is seldom a valid point.
+        }
+
+    } else if (isLocalFrame()) {
+        // TODO: Validate Local Frame coords
+        return true;
+    }
+    return true;
+}
+
+bool Waypoint::isLocalFrame() const
+{
+    switch (frame) {
+    case MAV_FRAME_LOCAL_NED:
+    case MAV_FRAME_LOCAL_ENU:
+    case MAV_FRAME_LOCAL_OFFSET_NED:
+        return true;
+    default:
+        return false;
+    }
 }
 
 bool Waypoint::visibleOnMapWidget()
@@ -151,7 +219,7 @@ void Waypoint::setId(quint16 id)
 
 void Waypoint::setX(double x)
 {
-    if (!isinf(x) && !isnan(x) && ((this->frame == MAV_FRAME_LOCAL_NED) || (this->frame == MAV_FRAME_LOCAL_ENU)))
+    if (!qIsInf(x) && !qIsNaN(x) && isLocalFrame())
     {
         this->x = x;
         emit changed(this);
@@ -160,7 +228,7 @@ void Waypoint::setX(double x)
 
 void Waypoint::setY(double y)
 {
-    if (!isinf(y) && !isnan(y) && ((this->frame == MAV_FRAME_LOCAL_NED) || (this->frame == MAV_FRAME_LOCAL_ENU)))
+    if (!qIsInf(y) && !qIsNaN(y) && isLocalFrame())
     {
         this->y = y;
         emit changed(this);
@@ -169,7 +237,7 @@ void Waypoint::setY(double y)
 
 void Waypoint::setZ(double z)
 {
-    if (!isinf(z) && !isnan(z) && ((this->frame == MAV_FRAME_LOCAL_NED) || (this->frame == MAV_FRAME_LOCAL_ENU)))
+    if (!qIsInf(z) && !qIsNaN(z) && isLocalFrame())
     {
         this->z = z;
         emit changed(this);
@@ -178,7 +246,7 @@ void Waypoint::setZ(double z)
 
 void Waypoint::setLatitude(double lat)
 {
-    if (this->x != lat && ((this->frame == MAV_FRAME_GLOBAL) || (this->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT)))
+    if (this->x != lat && isGlobalFrame())
     {
         this->x = lat;
         emit changed(this);
@@ -187,7 +255,7 @@ void Waypoint::setLatitude(double lat)
 
 void Waypoint::setLongitude(double lon)
 {
-    if (this->y != lon && ((this->frame == MAV_FRAME_GLOBAL) || (this->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT)))
+    if (this->y != lon && isGlobalFrame())
     {
         this->y = lon;
         emit changed(this);
@@ -196,7 +264,7 @@ void Waypoint::setLongitude(double lon)
 
 void Waypoint::setAltitude(double altitude)
 {
-    if (this->z != altitude && ((this->frame == MAV_FRAME_GLOBAL) || (this->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT)))
+    if (this->z != altitude && isGlobalFrame())
     {
         this->z = altitude;
         emit changed(this);

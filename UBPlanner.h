@@ -27,7 +27,7 @@ public slots:
 
 protected:
     QString m_file;
-    quint32 m_dim;
+    quint32 m_res;
     quint32 m_limit;
     qreal m_gap;
     quint32 m_lambda;
@@ -57,7 +57,7 @@ protected:
 
 public:
     void setFile(const QString& file) {m_file = file;}
-    void setDimension(quint32 dim) {m_dim = dim;}
+    void setResolution(quint32 res) {m_res = res;}
     void setLimit(quint32 limit) {m_limit = limit;}
     void setGap(qreal gap) {m_gap = gap;}
     void setLambda(quint32 lambda) {m_lambda = lambda;}
