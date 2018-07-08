@@ -75,11 +75,11 @@ QList<Waypoint*> UBPlanner::loadWaypoints(const QString &loadFile) {
     return wps;
 }
 
-void UBPlanner::storeWaypoints(const QString& storeFile, QList<Waypoint*>& wps) {
+bool UBPlanner::storeWaypoints(const QString& storeFile, QList<Waypoint*>& wps) {
     QFile file(storeFile);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         qWarning() << QObject::tr("Not able to open the mission file!");
-        return;
+        return false;
     }
 
     QTextStream out(&file);
@@ -93,6 +93,8 @@ void UBPlanner::storeWaypoints(const QString& storeFile, QList<Waypoint*>& wps) 
     }
 
     file.close();
+
+    return true;
 }
 
 void UBPlanner::startPlanner() {
@@ -128,10 +130,36 @@ void UBPlanner::startPlanner() {
         i++;
     }
 
-    plan();
+    QElapsedTimer total_time;
+    total_time.start();
+
+    decompose();
+
+    if (!divide()) {
+        cerr << "Unable to divide the area between agents!" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    QElapsedTimer agent_time;
+    for (int a = 0; a < m_agents.size(); a++) {
+        agent_time.restart();
+        if (!planAgent(a) || !validatePath(a)) {
+            cerr << "Unable to plan the coverage path for agent: " << a <<endl;
+            exit(EXIT_FAILURE);
+        }
+
+        cout << "Elapsed time for agent " << a << " is "<< agent_time.elapsed() / 1000.0 << endl;
+
+        buildMission(a);
+    }
+
+    emit planReady();
+
+    cout << "The planner has successfully planned the mission for each agent in total time " << total_time.elapsed() / 1000.0 << endl;
+    exit(EXIT_SUCCESS);
 }
 
-void UBPlanner::decompose() {
+bool UBPlanner::decompose() {
     QPointF sf = m_areas[0].boundingRect().bottomLeft();
     QPointF rf = m_areas[0].boundingRect().bottomRight();
     QPointF uf = m_areas[0].boundingRect().topLeft();
@@ -176,6 +204,8 @@ void UBPlanner::decompose() {
             }
         }
     }
+
+    return true;
 }
 
 bool UBPlanner::evaluate(const QVector<QPointF>& cell) {
@@ -279,10 +309,10 @@ bool UBPlanner::divide() {
         }
     }
     catch (IloException& e) {
-        cerr << "Concert exception caught: " << e << endl;
+        cerr << "Optimization Exception Caught: " << e << endl;
     }
     catch (...) {
-        cerr << "Unknown exception caught" << endl;
+        cerr << "Unable to divide the area beween agents!" << endl;
     }
 
     env.end();
@@ -460,10 +490,10 @@ bool UBPlanner::planAgent(quint32 agent) {
         }
     }
     catch (IloException& e) {
-        cerr << "Concert exception caught: " << e << endl;
+        cerr << "Optimization Exception Caught: " << e << endl;
     }
     catch (...) {
-        cerr << "Unknown exception caught" << endl;
+        cerr << "Unable to plan a path for agent: " << agent << endl;
     }
 
     env.end();
@@ -471,7 +501,7 @@ bool UBPlanner::planAgent(quint32 agent) {
     return result;
 }
 
-bool UBPlanner::pathInfo(quint32 agent) {
+bool UBPlanner::validatePath(quint32 agent) {
     qreal total_dist = 0;
     qreal total_turn = 0;
 
@@ -545,7 +575,7 @@ bool UBPlanner::pathInfo(quint32 agent) {
     return true;
 }
 
-void UBPlanner::missionAgent(quint32 agent) {
+bool UBPlanner::buildMission(quint32 agent) {
     QList<Waypoint*> wps;
 
     Waypoint* wp = new Waypoint();
@@ -593,35 +623,9 @@ void UBPlanner::missionAgent(quint32 agent) {
     wp->setLongitude(m_nodes[node].longitude());
     wps.append(wp);
 
-    storeWaypoints(tr("mission_%1.txt").arg(agent), wps);
-}
-
-void UBPlanner::plan() {
-    QElapsedTimer total_time;
-    total_time.start();
-
-    decompose();
-
-    if (!divide()) {
-        cerr << "Unable to divide the area between agents!" << endl;
-        exit(EXIT_FAILURE);
+    if (!storeWaypoints(tr("mission_%1.txt").arg(agent), wps)) {
+        return false;
     }
 
-    QElapsedTimer agent_time;
-    for (int a = 0; a < m_agents.size(); a++) {
-        agent_time.restart();
-        if (!planAgent(a) || !pathInfo(a)) {
-            cerr << "Unable to plan the coverage path for agent " << a << " !" <<endl;
-            exit(EXIT_FAILURE);
-        }
-
-        cout << "Elapsed time for agent " << a << " is "<< agent_time.elapsed() / 1000.0 << endl;
-
-        missionAgent(a);
-    }
-
-    emit planReady();
-
-    cout << "The planner has successfully planned the mission for each agent in total time " << total_time.elapsed() / 1000.0 << endl;
-    exit(EXIT_SUCCESS);
+    return true;
 }
