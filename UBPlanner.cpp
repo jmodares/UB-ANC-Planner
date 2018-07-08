@@ -215,7 +215,7 @@ bool UBPlanner::divide() {
 
     for (int a = 0; a < m_agents.size(); a++) {
         for (int i = 0; i < m_nodes.size(); i++) {
-            dist_agent_node[a][i] = m_agents[a].distanceTo(m_nodes[i]);
+            dist_agent_node[a][i] = m_pcs * m_agents[a].distanceTo(m_nodes[i]);
         }
     }
 
@@ -260,7 +260,7 @@ bool UBPlanner::divide() {
 
         result = true;
 
-        env.out() << "Minimume Cost = " << cplex.getObjValue() << endl;
+        env.out() << "Minimume Cost = " << cplex.getObjValue() / m_pcs << endl;
 
         for (int a = 0; a < m_agents.size(); a++) {
             for (int i = 0; i < m_nodes.size(); i++) {
@@ -335,7 +335,7 @@ bool UBPlanner::planAgent(quint32 agent) {
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             for (int k = 0; k < m_agent_paths[agent].size(); k++) {
-                if (dist_node_node[i][j] > max_dist || dist_node_node[j][k] > max_dist) {
+                if (dist_node_node[i][j] > m_pcs * max_dist || dist_node_node[j][k] > m_pcs * max_dist) {
                     turn_node_node_node[i][j][k] = m_kappa;
                 } else {
                     qreal r = m_nodes[m_agent_paths[agent][i].first].distanceTo(m_nodes[m_agent_paths[agent][j].first]);
