@@ -279,6 +279,21 @@ bool UBPlanner::divide() {
 
     env.end();
 
+    for (int a = 0; a < m_agents.size(); a++) {
+        m_depots[a] = m_agent_paths[a][0].first;
+
+        qreal min_dist = m_agents[a].distanceTo(m_nodes[m_depots[a]]);
+        QPair<quint32, quint32> node;
+        foreach (node, m_agent_paths[a]) {
+            qreal dist = m_agents[a].distanceTo(m_nodes[node.first]);
+
+            if (dist < min_dist) {
+                min_dist = dist;
+                m_depots[a] = node.first;
+            }
+        }
+    }
+
     return result;
 }
 
@@ -286,19 +301,6 @@ bool UBPlanner::planAgent(quint32 agent) {
     bool result = false;
 
     IloEnv env;
-
-    m_depots[agent] = m_agent_paths[agent][0].first;
-
-    qreal min_dist = m_agents[agent].distanceTo(m_nodes[m_depots[agent]]);
-    QPair<quint32, quint32> node;
-    foreach (node, m_agent_paths[agent]) {
-        qreal dist = m_agents[agent].distanceTo(m_nodes[node.first]);
-
-        if (dist < min_dist) {
-            min_dist = dist;
-            m_depots[agent] = node.first;
-        }
-    }
 
     IloIntArray2 dist_node_node(env);
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
