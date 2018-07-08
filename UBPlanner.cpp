@@ -23,7 +23,7 @@ UBPlanner::UBPlanner(QObject *parent) : QObject(parent),
     m_lambda(1),
     m_gamma(1),
     m_kappa(1000000000),
-    m_pcs(100)
+    m_pcn(100)
 {
     m_areas.clear();
     m_nodes.clear();
@@ -208,6 +208,7 @@ bool UBPlanner::divide() {
     bool result = false;
 
     IloEnv env;
+
     IloNumArray2 dist_agent_node(env);
     for (int a = 0; a < m_agents.size(); a++) {
         dist_agent_node.add(IloNumArray(env, m_nodes.size()));
@@ -215,40 +216,40 @@ bool UBPlanner::divide() {
 
     for (int a = 0; a < m_agents.size(); a++) {
         for (int i = 0; i < m_nodes.size(); i++) {
-            dist_agent_node[a][i] = m_pcs * m_agents[a].distanceTo(m_nodes[i]);
+            dist_agent_node[a][i] = m_pcn * m_agents[a].distanceTo(m_nodes[i]);
         }
     }
 
+    IloArray<IloBoolVarArray> x_agent_node(env);
+    for (int a = 0; a < m_agents.size(); a++) {
+        x_agent_node.add(IloBoolVarArray(env, m_nodes.size()));
+    }
+
+    IloFloatVar z(env);
+
     try {
         IloModel mod(env);
-
-        IloFloatVar z(env);
-        IloArray<IloBoolVarArray> x_agent_node(env);
-        for (int a = 0; a < m_agents.size(); a++) {
-            x_agent_node.add(IloBoolVarArray(env, m_nodes.size()));
-        }
-
         mod.add(IloMinimize(env, z));
 
         for (int a = 0; a < m_agents.size(); a++) {
             IloExpr total_dist(env);
-
             for (int i = 0; i < m_nodes.size(); i++) {
                 total_dist += dist_agent_node[a][i] * x_agent_node[a][i];
             }
 
             mod.add(total_dist <= z);
+
             total_dist.end();
         }
 
         for (int i = 0; i < m_nodes.size(); i++) {
             IloExpr flow_in(env);
-
             for (int a = 0; a < m_agents.size(); a++) {
                 flow_in += x_agent_node[a][i];
             }
 
             mod.add(flow_in == 1);
+
             flow_in.end();
         }
 
@@ -260,12 +261,19 @@ bool UBPlanner::divide() {
 
         result = true;
 
-        env.out() << "Minimume Cost = " << cplex.getObjValue() / m_pcs << endl;
+        env.out() << "Minimume Cost = " << cplex.getObjValue() / m_pcn << endl;
 
+        qreal min_dist = m_kappa;
         for (int a = 0; a < m_agents.size(); a++) {
             for (int i = 0; i < m_nodes.size(); i++) {
                 if (cplex.getValue(x_agent_node[a][i])) {
                     m_agent_paths[a] << QPair<quint32, quint32>(i, i);
+
+                    qreal dist = m_agents[a].distanceTo(m_nodes[i]);
+                    if (dist < min_dist) {
+                        min_dist = dist;
+                        m_depots[a] = i;
+                    }
                 }
             }
         }
@@ -278,21 +286,6 @@ bool UBPlanner::divide() {
     }
 
     env.end();
-
-    for (int a = 0; a < m_agents.size(); a++) {
-        m_depots[a] = m_agent_paths[a][0].first;
-
-        qreal min_dist = m_agents[a].distanceTo(m_nodes[m_depots[a]]);
-        QPair<quint32, quint32> node;
-        foreach (node, m_agent_paths[a]) {
-            qreal dist = m_agents[a].distanceTo(m_nodes[node.first]);
-
-            if (dist < min_dist) {
-                min_dist = dist;
-                m_depots[a] = node.first;
-            }
-        }
-    }
 
     return result;
 }
@@ -319,15 +312,13 @@ bool UBPlanner::planAgent(quint32 agent) {
 
     // sqrt(2) < 1.5 < 2
     qreal max_dist = 1.5 * m_res;
-
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             qreal dist = m_nodes[m_agent_paths[agent][i].first].distanceTo(m_nodes[m_agent_paths[agent][j].first]);
-
             if (!dist || dist > max_dist) {
                 dist_node_node[i][j] = m_kappa;
             } else {
-                dist_node_node[i][j] = m_pcs * dist;
+                dist_node_node[i][j] = m_pcn * dist;
             }
         }
     }
@@ -335,7 +326,7 @@ bool UBPlanner::planAgent(quint32 agent) {
     for (int i = 0; i < m_agent_paths[agent].size(); i++) {
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             for (int k = 0; k < m_agent_paths[agent].size(); k++) {
-                if (dist_node_node[i][j] > m_pcs * max_dist || dist_node_node[j][k] > m_pcs * max_dist) {
+                if (dist_node_node[i][j] > m_pcn * max_dist || dist_node_node[j][k] > m_pcn * max_dist) {
                     turn_node_node_node[i][j][k] = m_kappa;
                 } else {
                     qreal r = m_nodes[m_agent_paths[agent][i].first].distanceTo(m_nodes[m_agent_paths[agent][j].first]);
@@ -350,23 +341,23 @@ bool UBPlanner::planAgent(quint32 agent) {
 
                     qreal turn = M_PI - acos(t);
 
-                    turn_node_node_node[i][j][k] = m_pcs * turn;
+                    turn_node_node_node[i][j][k] = m_pcn * turn;
                 }
             }
         }
     }
 
+    IloArray<IloBoolVarArray> x_node_node(env);
+    for (int i = 0; i < m_agent_paths[agent].size(); i++) {
+        x_node_node.add(IloBoolVarArray(env, m_agent_paths[agent].size()));
+    }
+
+    IloNumVarArray u(env, m_agent_paths[agent].size(), 0.0, IloInfinity, ILOFLOAT);
+
     try {
         IloModel mod(env);
 
-        IloNumVarArray u(env, m_agent_paths[agent].size(), 0.0, IloInfinity, ILOFLOAT);
-        IloArray<IloBoolVarArray> x_node_node(env);
-        for (int i = 0; i < m_agent_paths[agent].size(); i++) {
-            x_node_node.add(IloBoolVarArray(env, m_agent_paths[agent].size()));
-        }
-
-        IloExpr total_dist(env), total_turn(env);
-
+        IloExpr total_dist(env);
         for (int i = 0; i < m_agent_paths[agent].size(); i++) {
             for (int j = 0; j < m_agent_paths[agent].size(); j++) {
                 if (j == i) {
@@ -377,6 +368,7 @@ bool UBPlanner::planAgent(quint32 agent) {
             }
         }
 
+        IloExpr total_turn(env);
         for (int i = 0; i < m_agent_paths[agent].size(); i++) {
             for (int j = 0; j < m_agent_paths[agent].size(); j++) {
                 if (j == i || m_agent_paths[agent][j].first == m_depots[agent]) {
@@ -400,7 +392,6 @@ bool UBPlanner::planAgent(quint32 agent) {
 
         for (int j = 0; j < m_agent_paths[agent].size(); j++) {
             IloExpr flow_in(env);
-
             for (int i = 0; i < m_agent_paths[agent].size(); i++) {
                 if (i == j) {
                     continue;
@@ -410,12 +401,12 @@ bool UBPlanner::planAgent(quint32 agent) {
             }
 
             mod.add(flow_in == 1);
+
             flow_in.end();
         }
 
         for (int i = 0; i < m_agent_paths[agent].size(); i++) {
             IloExpr flow_out(env);
-
             for (int j = 0; j < m_agent_paths[agent].size(); j++) {
                 if (j == i) {
                     continue;
@@ -425,6 +416,7 @@ bool UBPlanner::planAgent(quint32 agent) {
             }
 
             mod.add(flow_out == 1);
+
             flow_out.end();
         }
 
@@ -445,13 +437,13 @@ bool UBPlanner::planAgent(quint32 agent) {
         IloCplex cplex(mod);
         cplex.setParam(IloCplex::EpGap, m_gap);
         cplex.setParam(IloCplex::TiLim, m_limit);
-        if (!cplex.solve() || cplex.getObjValue() / m_pcs >= m_kappa) {
+        if (!cplex.solve() || cplex.getObjValue() / m_pcn >= m_kappa) {
             throw(-1);
         }
 
         result = true;
 
-        env.out() << "Minimume Cost = " << cplex.getObjValue() / m_pcs << endl;
+        env.out() << "Minimume Cost = " << cplex.getObjValue() / m_pcn << endl;
 
         for (int i = 0; i < m_agent_paths[agent].size(); i++) {
             for (int j = 0; j < m_agent_paths[agent].size(); j++) {
@@ -501,7 +493,6 @@ bool UBPlanner::pathInfo(quint32 agent) {
 
     // sqrt(2) < 1.5 < 2
     qreal max_dist = 1.5 * m_res;
-
     while (true) {
         qreal dist = m_nodes[i].distanceTo(m_nodes[j]);
         if (dist > max_dist) {

@@ -15,13 +15,14 @@ int main(int argc, char *argv[]) {
     parser.addVersionOption();
 
     parser.addOptions({
-        {{"f", "file"}, "Set mission file containing area information", "file"},
-        {{"r", "resolution"}, "Set resolution of the decomposition in meters", "resolution", "10"},
-        {{"l", "limit"}, "Set optimizer time limit in seconds", "limit", "1000000000"},
-        {{"g", "gap"}, "Set gap to the optimal solution", "gap", "0.01"},
-        {{"a", "lambda"}, "Set distance factor in cost function", "lambda", "1"},
-        {{"m", "gamma"}, "Set turn factor in cost function", "gamma", "1"},
-        {{"k", "kappa"}, "Set maximum capacity for each drone", "kappa", "1000000000"},
+        {{"f", "file"}, "Set mission file containing area information.", "file"},
+        {{"r", "resolution"}, "Set resolution of the decomposition in meters.", "resolution", "10"},
+        {{"l", "limit"}, "Set optimizer time limit in seconds.", "limit", "1000000000"},
+        {{"g", "gap"}, "Set gap to the optimal solution.", "gap", "0.01"},
+        {{"a", "lambda"}, "Set distance factor in cost function.", "lambda", "1"},
+        {{"m", "gamma"}, "Set turn factor in cost function.", "gamma", "1"},
+        {{"k", "kappa"}, "Set maximum capacity for each drone.", "kappa", "1000000000"},
+        {{"p", "precision"}, "Set precision for capacity calculation.", "precision", "100"},
     });
 
     parser.process(a);
@@ -39,6 +40,7 @@ int main(int argc, char *argv[]) {
     planner->setLambda(parser.value("lambda").toUInt());
     planner->setGamma(parser.value("gamma").toUInt());
     planner->setkappa(parser.value("kappa").toUInt());
+    planner->setPrecision(parser.value("precision").toUInt());
 
     planner->startPlanner();
 

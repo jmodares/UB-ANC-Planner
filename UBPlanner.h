@@ -34,7 +34,7 @@ protected:
     quint32 m_gamma;
     quint32 m_kappa;
 
-    quint32 m_pcs;
+    quint32 m_pcn;
 
     QVector<quint32> m_depots;
     QVector<QPolygonF> m_areas;
@@ -64,6 +64,7 @@ public:
     void setLambda(quint32 lambda) {m_lambda = lambda;}
     void setGamma(quint32 gamma) {m_gamma = gamma;}
     void setkappa(quint32 kappa) {m_kappa = kappa;}
+    void setPrecision(quint32 pcn) {m_pcn = pcn;}
 };
 
 #endif // UBPLANNER_H
