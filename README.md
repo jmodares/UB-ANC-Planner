@@ -25,7 +25,6 @@ sudo apt-get install qt5-default qtbase5-dev \
 ```
 
 Then, use `qmake` to build the planner:
-
 ```
 cd ~
 mkdir ub-anc && cd ub-anc
@@ -36,4 +35,4 @@ make -j4
 ```
 
 ## Run
-There are different command line options that need to be set, the important one is `-f` or `--file` which specify the mission file for the planner. Use `-h` or `--help` to see all options and their descriptions.
+There are different command options that need to be set, the important one is `-f` or `--file` which specifies the mission file for the planner. Use `-h` or `--help` to see all options and their descriptions.
